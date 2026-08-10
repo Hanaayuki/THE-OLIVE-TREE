@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:the_olive_tree/Screens/resenas_screen.dart';
 import 'screens/biblioteca_screen.dart';
 import 'screens/wishlist_screen.dart';
-
+import 'Theme/app_theme.dart';
 
 void main() => runApp(const OliveTreeApp());
 
@@ -13,6 +13,7 @@ class OliveTreeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
       home: const HomeScreen(),
     );
   }
@@ -42,9 +43,18 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _index,
         onTap: (index) => setState(() => _index = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.library_books), label: 'Biblioteca'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: 'Wishlist'),
-          BottomNavigationBarItem(icon: Icon(Icons.edit), label: 'Reseñas'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.library_books),
+            label: 'Biblioteca',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark),
+            label: 'Wishlist',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit),
+            label: 'Reseñas',
+          ),
         ],
       ),
     );

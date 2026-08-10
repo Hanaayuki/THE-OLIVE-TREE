@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/libro.dart';
 import '../Data/database_helper.dart';
 import 'agregar_libro_screen.dart';
+import 'lector_pdf_screen.dart';
 
 class BibliotecaScreen extends StatefulWidget {
   const BibliotecaScreen({super.key});
@@ -16,59 +18,143 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarLibros(); 
+    _cargarLibros();
   }
 
   Future<void> _cargarLibros() async {
     final librosDb = await DatabaseHelper.instance.getLibros();
-    setState(() {
-      misLibros = librosDb;
-    });
+
+    if (mounted) {
+      setState(() {
+        misLibros = librosDb;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Biblioteca'),
-        backgroundColor: Colors.brown,
+        title: const Text(
+          'Mi Biblioteca',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: misLibros.isEmpty
           ? const Center(
               child: Text(
-                'Aún no tienes libros.\n¡Pulsa el botón + para añadir uno!',
+                'Tu biblioteca está vacía.\nPulsa + para añadir tu primer libro.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.black54,
+                ),
               ),
             )
-          : ListView.builder(
+          : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.65,
+              ),
               itemCount: misLibros.length,
               itemBuilder: (context, index) {
                 final libro = misLibros[index];
-                return ListTile(
-                  leading: const Icon(Icons.book, color: Colors.brown),
-                  title: Text(libro.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(libro.autor),
-                  trailing: Text(libro.estado),
+
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8E2D6),
+                              borderRadius:
+                                  BorderRadius.circular(16),
+                            ),
+                            child: libro.portada != null &&
+                                    libro.portada!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.circular(16),
+                                    child: Image.file(
+                                      File(libro.portada!),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Icon(
+                                      Icons.menu_book,
+                                      size: 60,
+                                      color: Color(0xFF556B2F),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          libro.titulo,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          libro.autor,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          libro.estado,
+                          style: const TextStyle(
+                            color: Color(0xFF556B2F),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
-floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.brown,
+      floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final resultado = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const AgregarLibroScreen(),
+              builder: (context) =>
+                  const AgregarLibroScreen(),
             ),
           );
 
           if (resultado == true) {
-            // Aquí recargarás tu lista más adelante
+            _cargarLibros();
           }
         },
-        child: const Icon(Icons.add, color: Colors.white),
-      ), // Cierra FloatingActionButton
-    ); // Cierra Scaffold
-  } // Cierra build
-} // Cierra la clase _BibliotecaScreenState
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
