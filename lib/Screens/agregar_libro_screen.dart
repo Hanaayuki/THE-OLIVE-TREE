@@ -28,27 +28,39 @@ class _AgregarLibroScreenState
   // Seleccionar PDF
   Future<void> _seleccionarPdf() async {
     try {
-      FilePickerResult? result =
-          await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
 
-      if (result != null) {
-        setState(() {
-          _rutaPdf = result.files.single.path;
-        });
+      if (result == null) {
+        debugPrint('No se seleccionó ningún PDF.');
+        return;
       }
+
+      final archivo = result.files.single;
+
+      debugPrint('Nombre del PDF: ${archivo.name}');
+      debugPrint('Ruta del PDF: ${archivo.path}');
+
+      if (archivo.path == null || archivo.path!.isEmpty) {
+        debugPrint('ERROR: FilePicker no ha devuelto una ruta válida.');
+        return;
+      }
+
+      setState(() {
+        _rutaPdf = archivo.path;
+      });
+
+      debugPrint('PDF guardado en _rutaPdf: $_rutaPdf');
     } catch (e) {
-      debugPrint("Error al elegir archivo: $e");
+      debugPrint('Error al elegir archivo: $e');
     }
   }
 
-  // Seleccionar portada
   Future<void> _seleccionarPortada() async {
     try {
       final picker = ImagePicker();
-
       final imagen = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
@@ -60,25 +72,32 @@ class _AgregarLibroScreenState
         });
       }
     } catch (e) {
-      debugPrint("Error al elegir portada: $e");
+      debugPrint('Error al elegir portada: $e');
     }
   }
 
-  void _guardarLibro() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
+  Future<void> _guardarLibro() async {
+  if (_formKey.currentState!.validate()) {
+    _formKey.currentState!.save();
 
+    debugPrint('==============================');
+    debugPrint('GUARDANDO LIBRO');
+    debugPrint('Título: $_titulo');
+    debugPrint('Autor: $_autor');
+    debugPrint('PDF: $_rutaPdf');
+    debugPrint('Portada: $_rutaPortada');
+    debugPrint('==============================');
       final nuevoLibro = Libro(
         titulo: _titulo,
         autor: _autor,
         estado: 'Pendiente',
         portada: _rutaPortada,
+        rutaPdf: _rutaPdf,
         calificacion: 0,
         resena: '',
       );
 
-      await DatabaseHelper.instance
-          .insertLibro(nuevoLibro);
+      await DatabaseHelper.instance.insertLibro(nuevoLibro);
 
       if (mounted) {
         Navigator.pop(context, true);

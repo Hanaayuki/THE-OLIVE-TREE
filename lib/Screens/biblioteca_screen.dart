@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../models/libro.dart';
 import '../Data/database_helper.dart';
 import 'agregar_libro_screen.dart';
@@ -31,6 +33,78 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
     }
   }
 
+  void _abrirLibro(Libro libro) {
+    if (libro.rutaPdf != null && libro.rutaPdf!.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LectorPdfScreen(
+            rutaPdf: libro.rutaPdf!,
+            titulo: libro.titulo,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Este libro no tiene ningún PDF asociado.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _eliminarLibro(Libro libro) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar libro'),
+          content: Text(
+            '¿Quieres eliminar "${libro.titulo}" de tu biblioteca?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar != true) {
+      return;
+    }
+
+    if (libro.id != null) {
+      await DatabaseHelper.instance.deleteLibro(libro.id!);
+    }
+
+    if (mounted) {
+      setState(() {
+        misLibros.removeWhere(
+          (item) => item.id == libro.id,
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Libro eliminado de la biblioteca.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,10 +117,12 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
           ),
         ),
       ),
+
       body: misLibros.isEmpty
           ? const Center(
               child: Text(
-                'Tu biblioteca está vacía.\nPulsa + para añadir tu primer libro.',
+                'Tu biblioteca está vacía.\n'
+                'Pulsa + para añadir tu primer libro.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -72,73 +148,131 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8E2D6),
-                              borderRadius:
-                                  BorderRadius.circular(16),
-                            ),
-                            child: libro.portada != null &&
-                                    libro.portada!.isNotEmpty
-                                ? ClipRRect(
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          _abrirLibro(libro);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8E2D6),
                                     borderRadius:
                                         BorderRadius.circular(16),
-                                    child: Image.file(
-                                      File(libro.portada!),
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    ),
-                                  )
-                                : const Center(
-                                    child: Icon(
-                                      Icons.menu_book,
-                                      size: 60,
-                                      color: Color(0xFF556B2F),
-                                    ),
                                   ),
+                                  child: libro.portada != null &&
+                                          libro.portada!.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          child: Image.file(
+                                            File(libro.portada!),
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                          ),
+                                        )
+                                      : const Center(
+                                          child: Icon(
+                                            Icons.menu_book,
+                                            size: 60,
+                                            color:
+                                                Color(0xFF556B2F),
+                                          ),
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              Text(
+                                libro.titulo,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              Text(
+                                libro.autor,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.black54,
+                                ),
+                              ),
+
+                              const SizedBox(height: 6),
+
+                              Text(
+                                libro.estado,
+                                style: const TextStyle(
+                                  color: Color(0xFF556B2F),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          libro.titulo,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      ),
+
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.black87,
                           ),
+                          onSelected: (valor) {
+                            if (valor == 'abrir') {
+                              _abrirLibro(libro);
+                            } else if (valor == 'eliminar') {
+                              _eliminarLibro(libro);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'abrir',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.menu_book),
+                                  SizedBox(width: 10),
+                                  Text('Abrir libro'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'eliminar',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline),
+                                  SizedBox(width: 10),
+                                  Text('Eliminar libro'),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          libro.autor,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          libro.estado,
-                          style: const TextStyle(
-                            color: Color(0xFF556B2F),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final resultado = await Navigator.push(

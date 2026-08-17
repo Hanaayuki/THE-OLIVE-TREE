@@ -19,10 +19,27 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
   }
 
-  Future _createDB(Database db, int version) async {
+  Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE libros ADD COLUMN rutaPdf TEXT',
+      );
+    }
+  }
+
+  Future<void> _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE libros (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,29 +48,24 @@ class DatabaseHelper {
         portada TEXT,
         estado TEXT NOT NULL,
         calificacion INTEGER,
-        resena TEXT
+        resena TEXT,
+        rutaPdf TEXT
       )
     ''');
   }
 
- 
-
-  // 1. Guardar un libro nuevo en la base de datos
   Future<int> insertLibro(Libro libro) async {
     final db = await instance.database;
     return await db.insert('libros', libro.toMap());
   }
 
-  // 2. Leer (Obtener) todos los libros guardados
   Future<List<Libro>> getLibros() async {
     final db = await instance.database;
     final result = await db.query('libros');
-    
-   
+
     return result.map((json) => Libro.fromMap(json)).toList();
   }
 
-  // 3. Borrar un libro usando su ID
   Future<int> deleteLibro(int id) async {
     final db = await instance.database;
     return await db.delete(
@@ -61,6 +73,5 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-  } 
-  } 
-  
+  }
+}
